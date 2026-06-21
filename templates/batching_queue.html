@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<form method="GET">
+
+    <input
+        type="text"
+        name="search"
+        placeholder="Search account, customer, meter"
+        value="{{ search }}"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+<br>
+
+<h1>Batching Queue</h1>
+
+{% if pending_batching >= 30 %}
+
+<div style="
+    background:#fef3c7;
+    border:1px solid #f59e0b;
+    color:#92400e;
+    padding:15px;
+    border-radius:8px;
+    margin-bottom:20px;
+">
+
+    <strong>
+        ⚠ Batch Ready
+    </strong>
+
+    <br>
+
+    {{ pending_batching }}
+    meters awaiting batching.
+
+    <br><br>
+
+    <a
+        href="/create_batch"
+        onclick="return confirm(
+            'Are you sure you want to forward 30 meters to Test Bench?'
+        )"
+    >
+        Create Batch Of 30
+    </a>
+
+</div>
+
+{% else %}
+
+<div style="
+    background:#eff6ff;
+    border:1px solid #3b82f6;
+    color:#1e40af;
+    padding:15px;
+    border-radius:8px;
+    margin-bottom:20px;
+">
+
+    <strong>
+        Pending Batching:
+    </strong>
+
+    {{ pending_batching }}
+
+    <br>
+
+    Preferred batch size: 30
+
+    <br>
+
+    Need {{ 30 - pending_batching }} more meters.
+
+</div>
+
+{% endif %}
+
+
+<form method="POST" action="{{ url_for('forward_selected_batch') }}">
+
+<table class="table">
+
+    <tr>
+        <th>Select</th>
+        <th>Account</th>
+        <th>Customer</th>
+        <th>Removed Meter</th>
+        <th>Workflow Stage</th>
+        <th>Action</th>
+    </tr>
+
+    {% for record in records %}
+
+    <tr>
+
+
+    <td>
+        <input
+            type="checkbox"
+            name="selected_records"
+            value="{{ record.id }}"
+        >
+    </td>
+
+    <td>{{ record.account_number }}</td>
+
+    <td>{{ record.customer_name }}</td>
+
+    <td>{{ record.removed_meter }}</td>
+
+    <td>{{ record.workflow_stage }}</td>
+
+
+        <td>
+            <a href="/batching/{{ record.id }}">
+                Open
+            </a>
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+<br>
+
+<button type="submit">
+    Forward Selected
+</button>
+
+</form>
+
+<hr>
+
+<div>
+
+{% if pagination.has_prev %}
+<a href="?page={{ pagination.prev_num }}&search={{ search }}">
+    Previous
+</a>
+{% endif %}
+
+&nbsp;&nbsp;
+
+Page {{ pagination.page }}
+of
+{{ pagination.pages if pagination.pages > 0 else 1 }}
+
+&nbsp;&nbsp;
+
+{% if pagination.has_next %}
+<a href="?page={{ pagination.next_num }}&search={{ search }}">
+    Next
+</a>
+{% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Summary</title>
+
+    <style>
+
+        body{
+            font-family: Arial;
+            padding:20px;
+            background:#f4f6f9;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+            background:white;
+        }
+
+        th{
+            background:#1f2937;
+            color:white;
+            padding:12px;
+        }
+
+        td{
+            padding:10px;
+            border:1px solid #ddd;
+            text-align:center;
+        }
+
+        h2{
+            margin-bottom:20px;
+        }
+
+    </style>
+
+</head>
+<body>
+
+  <h2>Stock Summary</h2>
+
+<table>
+
+    <tr>
+        <th>Region</th>
+
+        {% for size in sizes %}
+        <th>{{ size }}</th>
+        {% endfor %}
+
+        <th>Total</th>
+    </tr>
+
+    {% for region, data in summary.items() %}
+
+    <tr>
+
+        <td><b>{{ region }}</b></td>
+
+        {% for size in sizes %}
+        <td>{{ data[size] }}</td>
+        {% endfor %}
+
+        <td><b>{{ data['Total'] }}</b></td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>  
+
+</body>
+</html>

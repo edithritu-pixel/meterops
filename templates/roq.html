@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="roq-layout">
+
+
+<!-- ===================================== -->
+<!-- MAIN CONTENT -->
+<!-- ===================================== -->
+
+<div class="roq-content">
+<div class="roq-header">
+
+    <h1>Regional Operations Queue</h1>
+
+    <form method="GET"
+          action="{{ url_for('roq') }}"
+          class="search-bar">
+
+        <input
+            type="text"
+            name="search"
+            placeholder="Search account, customer or meter"
+            value="{{ search }}"
+        >
+
+        <button type="submit">
+            Search
+        </button>
+
+    </form>
+
+    <div class="roq-tabs">
+
+        <a href="/roq" class="active-tab">All</a>
+
+        <a href="/roq/status/New Request">New Requests</a>
+
+        <a href="/roq/status/Allocated">Allocated</a>
+
+        <a href="/roq/status/Pending System Update">
+            Pending Updates
+        </a>
+
+        <a href="/roq/status/Closed">Closed</a>
+
+        <select onchange="location=this.value">
+            <option>More Filters</option>
+            <option value="/roq/status/Forwarded to Bench Test">
+                Forwarded to Bench Test
+            </option>
+            <option value="/roq/status/Bench Test">
+                Bench Test Results
+            </option>
+            <option value="/roq/status/Reabsorbed">
+                Reabsorbed
+            </option>
+            <option value="/roq/status/Disposed">
+                Disposed
+            </option>
+        </select>
+
+    </div>
+
+</div>
+   
+
+
+    <!-- ===================================== -->
+    <!-- TABLE -->
+    <!-- ===================================== -->
+
+
+
+ <div class="table-top-bar">
+
+    <div class="page-info">
+        Page {{ pagination.page }} of {{ pagination.pages }}
+    </div>
+
+    <div class="record-count">
+        Showing {{ pagination.items|length }} of {{ pagination.total }} records
+    </div>
+
+    <div class="pagination-links">
+
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('roq',
+            page=pagination.prev_num,
+            search=search) }}">
+            ← Previous
+        </a>
+        {% endif %}
+
+        {% if pagination.has_next %}
+        <a href="{{ url_for('roq',
+            page=pagination.next_num,
+            search=search) }}">
+            Next →
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>   
+
+</div>
+
+
+        <div class="table-container">
+           <table>
+                <tr>
+                    <th>Transaction Key</th>
+                
+                    <th>Installation Key</th>
+                    <th>Account</th>
+
+                    <th>Customer</th>
+
+                    <th>Allocated Meter</th>
+
+                    <th>Removed Meter</th>
+
+                    <th>Category</th>
+
+                    <th>Workflow Stage</th>
+
+                    <th>Pending Reason</th>
+
+                    <th>Remarks</th>
+
+                    <th>Actions</th>
+
+                </tr>
+
+        {% for r in records %}
+
+        <tr>
+
+            <!-- ACCOUNT -->
+             <td>
+                {{ r.transaction_key }}
+            </td>
+
+            <td>
+                {{ r.installation_key }}
+            </td>
+
+            <td>
+                {{ r.account_number }}
+            </td>
+
+            <!-- CUSTOMER -->
+
+            <td>
+                {{ r.customer_name }}
+            </td>
+
+            <!-- NEW METER -->
+
+            <td>
+                {{ r.allocated_meter }}
+            </td>
+
+            <!-- OLD METER -->
+
+            <td>
+                {{ r.removed_meter }}
+            </td>
+
+            <!-- CATEGORY -->
+
+            <td>
+                {% if r.category == "Change and repair" %}
+                    C&R
+                {% else %}
+                    {{ r.category }}
+                {% endif %}
+            </td>
+
+            <!-- WORKFLOW -->
+
+            <td>
+                <span class="
+                    stage-badge
+                    {% if r.workflow_stage == 'New Request' %}stage-new{% endif %}
+                    {% if r.workflow_stage == 'Pending Batching' %}stage-batching{% endif %}
+                    {% if r.workflow_stage == 'Closed' %}stage-closed{% endif %}
+                    {% if r.workflow_stage == 'Failed Testing' %}stage-failed{% endif %}
+                ">
+                    {{ r.workflow_stage }}
+                </span>
+            </td>
+
+            <!-- PENDING -->
+
+            <td>
+                {{ r.pending_reason }}
+            </td>
+
+            <!-- REMARKS -->
+
+            <td>
+                <span class="
+                    remark-badge
+                    {% if r.remarks|lower == 'stopped' %}remark-stopped{% endif %}
+                    {% if r.remarks|lower == 'metered' %}remark-metered{% endif %}
+                ">
+                    {{ r.remarks }}
+                </span>
+            </td>
+
+            <!-- ACTIONS -->
+
+        <td>
+            <div class="action-buttons">
+
+                <a href="{{ url_for('work_plan_detail', id=r.id) }}"
+                class="btn work-btn">
+                Work Plan
+                </a>
+
+                <a href="/transaction_history/{{ r.transaction_key }}"
+                class="btn history-btn">
+                History
+                </a>
+
+                {% if r.removed_meter_photo %}
+                <a href="{{ url_for('static', filename=r.removed_meter_photo) }}"
+                class="btn photo-btn"
+                target="_blank">
+                Photo
+                </a>
+                {% endif %}
+
+                {% if r.office_return_document %}
+
+
+                <a href="/uploads/{{ r.office_return_document }}"
+                class="btn return-btn"
+                target="_blank">
+                Return
+                </a>
+                {% endif %}
+
+            </div>
+        </td>
+        </tr>
+
+        {% endfor %}
+
+        </table>
+</div>
+
+</div>
+
+
+</div>
+
+<!-- ===================================== -->
+
+<!-- STYLING -->
+
+<!-- ===================================== -->
+
+<style>
+
+.roq-content {
+    padding: 20px;
+}
+.roq-tabs {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+
+
+
+
+.roq-tabs select {
+
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-weight: 600;
+    background: white;
+
+}
+
+table {
+
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+
+}
+
+th {
+    background: #1f2937;
+    color: white;
+    padding: 14px 12px;
+    font-size: 13px;
+    text-align: left;
+}
+
+td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+tr:hover {
+    background: #f1f5f9;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    border-radius: 10px;
+}
+
+th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 95px;
+}
+.action-buttons {
+    align-items: stretch;
+}
+
+.btn {
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.work-btn {
+    background: #1f2937;
+    color: white;
+}
+
+.history-btn {
+    background: white;
+    border: 1px solid #1f2937;
+    color: #1f2937;
+}
+
+.photo-btn {
+    background: white;
+    border: 1px solid #1f2937;
+    color: #1f2937;
+}
+
+.return-btn {
+    background: white;
+    border: 1px solid #1f2937;
+    color: #1f2937;
+}
+.stage-badge,
+.remark-badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+}
+/* Workflow colors */
+
+.stage-new {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.stage-batching {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.stage-closed {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.stage-failed {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+/* Remarks colors */
+
+.remark-stopped {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.remark-metered {
+    background: #DCFCE7;
+    color: #166534;
+}
+.roq-content h1 {
+    margin-bottom: 20px;
+    color: #111827;
+}
+
+.search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.search-bar input {
+    width: 380px;
+    padding: 12px 16px;
+    border: 1px solid #CBD5E1;
+    border-radius: 10px;
+    background: white;
+    font-size: 14px;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: #1F2937;
+    box-shadow: 0 0 0 3px rgba(31, 41, 55, 0.08);
+}
+
+.search-bar button {
+    background: #0f766e;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+
+.roq-header {
+    background: linear-gradient(
+        135deg,
+        #d9efeb 0%,
+        #eaf7f4 100%
+    );
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #dbe5e4;
+}
+
+
+.roq-header h1 {
+    color: #0f172a;
+}
+
+
+.search-bar input {
+    border: 1px solid #cbd5d1;
+}
+
+.roq-tabs a {
+    padding: 8px 16px;
+    background: white;
+    color: #334155;
+    border: 1px solid #dbe5e4;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+}
+.active-tab {
+    background: #0f766e !important;
+    color: white !important;
+}
+.roq-tabs a:hover {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+
+.roq-tabs select {
+    background: white;
+}
+.table-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 30px;
+    margin: 18px 0;
+    flex-wrap: wrap;
+}
+
+.page-info {
+    font-weight: 600;
+    color: #334155;
+}
+
+.record-count {
+    color: #64748b;
+}
+
+.pagination-links {
+    display: flex;
+    gap: 14px;
+}
+
+.pagination-links a {
+    text-decoration: none;
+    color: #0f766e;
+    font-weight: 600;
+}
+</style>
+
+{% endblock %}

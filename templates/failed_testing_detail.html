@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{{ url_for('failed_testing') }}">
+    ← Back to Failed Testing Queue
+</a>
+
+<hr>
+<h1>Failed Testing Detail</h1>
+
+<p>
+    <b>Account:</b>
+    {{ record.account_number }}
+</p>
+
+<p>
+    <b>Customer:</b>
+    {{ record.customer_name }}
+</p>
+
+<p>
+    <b>Removed Meter:</b>
+    {{ record.removed_meter }}
+</p>
+
+<p>
+    <b>Test Result:</b>
+    {{ record.test_bench_result }}
+</p>
+
+<p>
+    <b>Test Bench Remarks:</b>
+    {{ record.test_bench_remarks }}
+</p>
+
+<hr>
+
+<form method="POST">
+
+    <label>Disposal Remarks</label>
+
+    <textarea
+        name="disposal_remarks"
+        rows="4"
+        cols="50"
+    ></textarea>
+
+    <br><br>
+
+    <button type="submit">
+        Forward To Disposal
+    </button>
+
+</form>
+
+{% endblock %}

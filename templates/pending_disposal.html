@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Pending Disposal Queue</h1>
+
+<table class="table">
+
+    <tr>
+        <th>Account</th>
+        <th>Customer</th>
+        <th>Removed Meter</th>
+        <th>Action</th>
+    </tr>
+
+    {% for record in records %}
+
+    <tr>
+
+        <td>{{ record.account_number }}</td>
+
+        <td>{{ record.customer_name }}</td>
+
+        <td>{{ record.removed_meter }}</td>
+
+        <td>
+            <a href="/pending_disposal/{{ record.id }}">
+                Open
+            </a>
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% endblock %}

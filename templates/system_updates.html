@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+    <title>System Updates Queue</title>
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+</head>
+
+<body class="container mt-4">
+
+    <h2>Pending System Updates</h2>
+
+    <table class="table table-bordered">
+
+        <thead>
+
+            <tr>
+
+                <th>Account</th>
+
+                <th>Customer</th>
+
+                <th>Old Meter</th>
+
+                <th>New Meter</th>
+
+                <th>Final Reading</th>
+
+                <th>Status</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+
+            <tr>
+
+                <td>{{ r.account_number }}</td>
+
+                <td>{{ r.customer_name }}</td>
+
+                <td>{{ r.removed_meter }}</td>
+
+                <td>{{ r.allocated_meter }}</td>
+
+                <td>{{ r.final_reading }}</td>
+
+                <td>{{ r.status }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</body>
+
+</html>

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Allocate Meter</h2>
+
+<form method="POST">
+
+    <label>Meter</label>
+
+    <select name="allocated_meter" required>
+
+        {% for meter in available_meters %}
+
+            <option value="{{ meter.meter_number }}">
+                {{ meter.meter_number }}
+            </option>
+
+        {% endfor %}
+
+    </select>
+
+    <br><br>
+
+    <label>Technician</label>
+
+    <input type="text"
+           name="allocated_to"
+           required>
+
+    <br><br>
+
+    <button type="submit">
+        Allocate
+    </button>
+
+</form>
+
+{% endblock %}

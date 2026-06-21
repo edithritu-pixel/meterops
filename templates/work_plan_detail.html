@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Work Plan Detail</h1>
+
+<form method="POST" enctype="multipart/form-data">
+
+<p>
+    <b>Account:</b>
+    {{ plan.account_number }}
+</p>
+<p>
+    <b>Transaction Key:</b>
+    {{ plan.transaction_key }}
+</p>
+
+<p>
+    <b>Installation Key:</b>
+    {{ plan.installation_key }}
+</p>
+
+<p>
+    <b>Current Meter Installation Date:</b>
+    {{ plan.current_meter_installation_date }}
+</p>
+
+<p>
+    <b>Year of Manufacture:</b>
+    {{ plan.current_meter_year_of_manufacture }}
+</p>
+<p>
+    <b>Customer:</b>
+    {{ plan.customer_name }}
+</p>
+<p>
+    <b>Current Meter:</b>
+    {{ plan.current_meter }}
+</p>
+<p>
+    <b>Category:</b>
+    {{ plan.category }}
+</p>
+
+<hr>
+
+{% if plan.category|trim|lower != 'vacate' %}
+
+<h3>Allocation Details</h3>
+
+<p>
+    <b>Allocated Meter:</b>
+    {{ plan.allocated_meter or 'Not Allocated' }}
+</p>
+
+<p>
+    <b>Technician:</b>
+    {{ plan.allocated_to or 'Not Assigned' }}
+</p>
+
+<p>
+    <b>Field Status:</b>
+    {{ plan.field_status or 'Pending' }}
+</p>
+
+<p>
+    <b>Date Allocated:</b>
+    {{ plan.date_allocated }}
+</p>
+
+<p>
+    <b>Date Installed:</b>
+    {{ plan.date_installed }}
+</p>
+
+{% endif %}
+    <b>Date Updated:</b>
+    {{ plan.work_order_update_date }}
+    {% if plan.removed_meter_photo %}
+<p>
+    <b>Removed Meter Photo:</b>
+
+    <a
+        href="{{ url_for('uploaded_file',
+        filename=plan.removed_meter_photo) }}"
+        target="_blank"
+    >
+        View Meter Photo
+    </a>
+</p>
+{% endif %}
+
+{% if plan.office_return_document %}
+<p>
+    <b>Returned Office Copy:</b>
+
+    <a
+        href="{{ url_for(
+            'uploaded_file',
+            filename=plan.office_return_document
+        ) }}"
+        target="_blank"
+    >
+        View Document
+    </a>
+</p>
+{% endif %}
+
+<!-- ===================================== -->
+<!-- ALLOCATION -->
+<!-- ===================================== -->
+
+{% if not plan.allocated_meter and plan.category|trim|lower != 'vacate' %}
+<hr>
+<p>
+    <b>Category:</b>
+    {{ plan.category }}
+</p>
+
+<p>
+    DEBUG: [{{ plan.category }}]
+</p>
+<h3>Allocate Meter</h3>
+
+<label>Allocated Meter</label>
+
+<select name="allocated_meter">
+
+    <option value="">
+        Select Meter
+    </option>
+
+    {% for meter in available_meters %}
+
+    <option value="{{ meter.meter_number }}">
+        {{ meter.meter_number }}
+    </option>
+
+    {% endfor %}
+
+</select>
+
+<br><br>
+
+<label>Technician</label>
+
+<select name="allocated_to">
+
+    <option value="">
+        Select Technician
+    </option>
+
+    <option>James Kungu</option>
+    <option>Samuel Murimi</option>
+    <option>George Kimani</option>
+    <option>Christopher Asembo</option>
+    <option>John Mwangi</option>
+    <option>Watson Gaita</option>
+
+</select>
+
+<br><br>
+
+<button type="submit">
+    Save Allocation
+</button>
+
+{% endif %}
+
+
+<!-- ===================================== -->
+<!-- FIELD RETURN -->
+<!-- ===================================== -->
+
+{% if (plan.allocated_meter or plan.category == 'Vacate') and not plan.field_status %}
+
+<hr>
+
+<h3>Field Return</h3>
+
+<label>Status</label>
+
+<select name="field_status">
+
+    <option value="">
+        Select Status
+    </option>
+
+    {% if plan.category != 'Vacate' %}
+    <option value="Installed">
+        Installed
+    </option>
+    {% endif %}
+
+    {% if plan.category in ['Replacement', 'Vacate'] %}
+    <option value="Returned">
+        Returned To Store
+    </option>
+    {% endif %}
+
+</select>
+{% endif %}
+
+</select>
+
+<br><br>
+
+<label>Remarks</label>
+
+<textarea
+    name="field_remarks"
+    rows="4"
+    cols="50"
+>{{ plan.field_remarks or '' }}</textarea>
+
+<br><br>
+{% if plan.category in ['Replacement', 'Vacate'] %}
+
+<label>Photo of Removed Meter</label>
+
+<input
+    type="file"
+    name="removed_meter_photo"
+    accept="image/*"
+>
+
+<br><br>
+
+<label>Signed Return Document</label>
+
+<input
+    type="file"
+    name="office_return_document"
+>
+
+<br><br>
+
+<br><br>
+
+<button type="submit">
+    Save Field Update
+</button>
+
+{% endif %}
+
+
+<!-- ===================================== -->
+<!-- WORK ORDER UPDATE -->
+<!-- ===================================== -->
+
+{% if plan.field_status in ['Installed', 'Returned']
+      and plan.work_order_status != 'Updated' %}
+
+<hr>
+
+<h3>Work Order Update</h3>
+
+
+<p style="color: green;">
+Field return completed.
+You may now update the account.
+</p>
+
+<input type="hidden" name="work_order_submit" value="yes">
+
+<select name="work_order_status">
+
+    <option value="">
+        Select
+    </option>
+
+   <option
+    value="Updated"
+    {% if plan.work_order_status == "Updated" %}
+    selected
+    {% endif %}
+>
+    Updated
+
+    </option>
+
+    <option
+        value="Not Updated"
+        {% if plan.work_order_status == "Not Updated" %}
+        selected
+        {% endif %}
+    >
+        Not Updated
+    </option>
+
+</select>
+
+<br><br>
+
+<label>Comments</label>
+
+<textarea
+    name="work_order_comments"
+    rows="4"
+    cols="50"
+>{{ plan.work_order_comments or '' }}</textarea>
+
+<br><br>
+
+<button type="submit">
+    Save Work Order
+</button>
+
+{% endif %}
+
+<hr>
+
+<h3>Work Order Details</h3>
+
+<table class="table table-sm">
+
+    <tr>
+        <th>Status</th>
+        <td>{{ plan.work_order_status or 'Pending' }}</td>
+    </tr>
+
+    <tr>
+        <th>Comments</th>
+        <td>{{ plan.work_order_comments or '-' }}</td>
+    </tr>
+
+    <tr>
+        <th>Updated By</th>
+        <td>{{ plan.work_order_updated_by or '-' }}</td>
+    </tr>
+
+    <tr>
+        <th>Date</th>
+        <td>{{ plan.work_order_update_date or '-' }}</td>
+    </tr>
+
+</table>
+<hr>
+
+{% if plan.work_order_status != 'Updated' %}
+
+<hr>
+
+<label>Cancellation Reason</label>
+
+<textarea
+    name="cancel_reason"
+    rows="3"
+    cols="50"
+></textarea>
+
+<br><br>
+
+<button
+    type="submit"
+    name="cancel_request"
+    value="yes"
+    onclick="return confirm('Cancel this request?')"
+    style="background:#dc2626; color:white; padding:10px 15px; border:none; border-radius:6px; cursor:pointer;"
+>
+    Cancel Request
+</button>
+
+{% endif %}
+</form>
+
+{% endblock %}

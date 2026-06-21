@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Passed Testing Detail</h1>
+
+<p>
+    <b>Account:</b>
+    {{ record.account_number }}
+</p>
+
+<p>
+    <b>Customer:</b>
+    {{ record.customer_name }}
+</p>
+
+<p>
+    <b>Result:</b>
+    {{ record.test_bench_result }}
+</p>
+
+<p>
+    <b>Remarks:</b>
+    {{ record.test_bench_remarks }}
+</p>
+
+<hr>
+
+<form method="POST">
+
+    <button type="submit">
+        Reabsorb Meter
+    </button>
+
+</form>
+
+{% endblock %}

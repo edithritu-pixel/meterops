@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Batching Report</h1>
+<a
+href="{{ url_for(
+    'export_batching_report',
+    start_date=request.args.get('start_date'),
+    end_date=request.args.get('end_date')
+) }}"
+class="btn-export"
+>
+    Export Excel
+</a>
+
+<br><br>
+<form method="GET" class="filter-form">
+<label>Region</label>
+
+<select name="region">
+
+    <option value="">All Regions</option>
+
+    <option value="Central">Central</option>
+    <option value="Dagoretti">Dagoretti</option>
+    <option value="ISR">ISR</option>
+    <option value="Kasarani">Kasarani</option>
+    <option value="Lower Embakasi">Lower Embakasi</option>
+    <option value="Upper Embakasi">Upper Embakasi</option>
+    <option value="Roysambu">Roysambu</option>
+    <option value="Westlands">Westlands</option>
+
+</select>
+    <label>From</label>
+
+    <input
+        type="date"
+        name="start_date"
+        value="{{ request.args.get('start_date','') }}"
+    >
+
+    <label>To</label>
+
+    <input
+        type="date"
+        name="end_date"
+        value="{{ request.args.get('end_date','') }}"
+    >
+
+    <button type="submit">
+        Filter
+    </button>
+
+</form>
+
+<br>
+<table class="table">
+
+    <thead>
+        <tr>
+            <th>Account</th>
+            <th>Customer</th>
+            <th>Removed Meter</th>
+            <th>Allocated Meter</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+    {% for record in records %}
+
+        <tr>
+            <td>{{ record.account_number }}</td>
+            <td>{{ record.customer_name }}</td>
+            <td>{{ record.removed_meter }}</td>
+            <td>{{ record.allocated_meter }}</td>
+        </tr>
+
+    {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Edit Meter Record</title>
+
+</head>
+
+<body>
+
+    <h1>Edit Meter Record</h1>
+
+    <form method="POST">
+
+        <label>Allocated To</label>
+
+        <input type="text"
+               name="allocated_to"
+               value="{{ record.allocated_to }}">
+
+        <br><br>
+
+        <label>Final Reading</label>
+
+        <input type="text"
+               name="final_reading"
+               value="{{ record.final_reading }}">
+
+        <br><br>
+
+        <label>Return Date</label>
+
+        <input type="date"
+               name="return_date"
+               value="{{ record.return_date }}">
+
+        <br><br>
+
+        <label>Status</label>
+
+        <select name="status">
+
+            <option value="Pending Installation"
+                {% if record.status == 'Pending Installation' %}
+                selected
+                {% endif %}>
+                Pending Installation
+            </option>
+
+            <option value="Installed"
+                {% if record.status == 'Installed' %}
+                selected
+                {% endif %}>
+                Installed
+            </option>
+
+            <option value="Returned to Store"
+                {% if record.status == 'Returned to Store' %}
+                selected
+                {% endif %}>
+                Returned to Store
+            </option>
+
+            <option value="Completed"
+                {% if record.status == 'Completed' %}
+                selected
+                {% endif %}>
+                Completed
+            </option>
+
+        </select>
+
+        <br><br>
+
+        <label>Assistant Comment</label>
+
+        <textarea name="assistant_comment">
+         <label>Pending Reason</label>
+
+<input
+    type="text"
+    name="pending_reason"
+    value="{{ record.pending_reason }}"
+>
+
+<label>Operational Remarks</label>
+
+<textarea
+    name="operational_remarks"
+>{{ record.operational_remarks }}</textarea>   
+
+{{ record.assistant_comment }}
+
+        </textarea>
+
+        <br><br>
+
+        <button type="submit">
+            Update Record
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/">
+        Back to Dashboard
+    </a>
+
+</body>
+
+</html>

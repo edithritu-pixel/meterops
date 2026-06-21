@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Technician Performance Report</h1>
+<form method="GET" class="filter-form">
+
+    <label>Region</label>
+
+    <select name="region">
+        <option value="">All Regions</option>
+        <option value="Central">Central</option>
+        <option value="Dagoretti">Dagoretti</option>
+        <option value="ISR">ISR</option>
+        <option value="Kasarani">Kasarani</option>
+        <option value="Lower Embakasi">Lower Embakasi</option>
+        <option value="Upper Embakasi">Upper Embakasi</option>
+        <option value="Roysambu">Roysambu</option>
+        <option value="Westlands">Westlands</option>
+    </select>
+
+    <label>From</label>
+
+    <input
+        type="date"
+        name="start_date"
+        value="{{ request.args.get('start_date','') }}"
+    >
+
+    <label>To</label>
+
+    <input
+        type="date"
+        name="end_date"
+        value="{{ request.args.get('end_date','') }}"
+    >
+
+    <button type="submit">
+        Filter
+    </button>
+
+</form>
+<table class="table">
+
+    <thead>
+        <tr>
+            <th>Technician</th>
+            <th>Total Jobs</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+    {% for tech, count in technicians.items() %}
+
+        <tr>
+            <td>{{ tech }}</td>
+            <td>{{ count }}</td>
+        </tr>
+
+    {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

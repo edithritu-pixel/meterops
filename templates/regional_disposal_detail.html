@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Regional Disposal Review</h1>
+
+<p><b>Account:</b> {{ record.account_number }}</p>
+
+<p><b>Customer:</b> {{ record.customer_name }}</p>
+
+<p><b>Removed Meter:</b> {{ record.removed_meter }}</p>
+
+<p><b>Test Result:</b> {{ record.test_bench_result }}</p>
+
+<p><b>Bench Remarks:</b> {{ record.test_bench_remarks }}</p>
+
+<p><b>Regional Remarks:</b> {{ record.disposal_remarks }}</p>
+
+<form method="POST">
+
+    <button type="submit">
+        Forward To HQ Disposal
+    </button>
+
+</form>
+
+{% endblock %}

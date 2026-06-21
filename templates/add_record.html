@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Add Record</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 30px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 700px;
+            margin: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #1f2937;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        tr:hover {
+            background: #eef2ff;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        input,
+        select,
+        textarea {
+
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        a {
+            text-decoration: none;
+            color: #2563eb;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Add Meter Record</h1>
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <input
+                type="text"
+                id="account_number"
+                name="account_number"
+                placeholder="Account Number"
+                required>
+
+            <input
+                type="text"
+                id="customer_name"
+                name="customer_name"
+                placeholder="Customer Name"
+                readonly>
+
+            <input
+                type="text"
+                name="allocated_meter"
+                id="allocated_meter"
+                list="meter_list"
+                placeholder="Search Meter Number">
+
+            <datalist id="meter_list">
+
+                {% for meter in available_meters %}
+
+                <option value="{{ meter.meter_number }}">
+
+                {% endfor %}
+
+            </datalist>
+
+            <input
+                type="text"
+                name="allocated_to"
+                placeholder="Allocated To">
+
+            <input
+                type="text"
+                name="reported_by"
+                placeholder="Reported By">
+
+            <select name="category">
+
+                <option value="">
+                    Select Category
+                </option>
+
+                <option value="New Installation">
+                    New Installation
+                </option>
+
+                <option value="Change & Repair">
+                    Change & Repair
+                </option>
+
+                <option value="Meter Test">
+                    Meter Test
+                </option>
+
+                <option value="Damaged">
+                    Damaged
+                </option>
+
+                <option value="Stolen">
+                    Stolen
+                </option>
+
+            </select>
+
+            <input
+                type="text"
+                id="removed_meter"
+                name="removed_meter"
+                placeholder="Removed Meter">
+
+            <label>
+                Upload Old Meter Photo
+            </label>
+
+            <input
+                type="file"
+                name="meter_photo">
+
+            <input
+                type="text"
+                name="final_reading"
+                placeholder="Final Reading">
+
+            <select name="status">
+
+                <option value="Pending Installation">
+                    Pending Installation
+                </option>
+
+                <option value="Installed">
+                    Installed
+                </option>
+
+                <option value="Returned to Store">
+                    Returned to Store
+                </option>
+
+                <option value="Completed">
+                    Completed
+                </option>
+
+            </select>
+
+            <textarea
+                name="assistant_comment"
+                placeholder="Assistant Comment"></textarea>
+
+            <button type="submit">
+                Save Record
+            </button>
+
+        </form>
+
+        <br>
+
+        <a href="/">
+            ← Back to Dashboard
+        </a>
+
+    </div>
+
+    <script>
+
+    document.getElementById("account_number").addEventListener("blur", function () {
+
+        let accountNumber = this.value;
+
+        fetch("/get_customer/" + accountNumber)
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            document.getElementById("customer_name").value =
+                data.customer_name || "";
+
+            document.getElementById("removed_meter").value =
+                data.current_meter || "";
+
+        })
+
+        .catch(error => console.log(error));
+
+    });
+
+    </script>
+
+</body>
+
+</html>

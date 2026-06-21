@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="page-title">
+    MeterOps Operations Dashboard
+</h1>
+
+<div class="card" style="max-width:950px;">
+
+    <div class="summary-header">
+        Regional Summary
+    </div>
+
+    <div style="overflow-x:auto;">
+
+        <table class="regional-table"
+               style="width:100%; font-size:13px; margin-top:10px;">
+
+            <tr>
+                <th>Region</th>
+                <th>Available Meters</th>
+                <th>Pending Allocation</th>
+                <th>Closed Jobs</th>
+            </tr>
+
+            {% for region in regional_summary %}
+
+            <tr class="region-row">
+
+                <td>{{ region.region }}</td>
+
+                <td style="text-align:center;">
+                    {{ region.available_meters }}
+                </td>
+
+                <td style="text-align:center;">
+                    {{ region.pending_allocation }}
+                </td>
+
+                <td style="text-align:center;">
+                    {{ region.closed_jobs }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+</div>
+
+<br>
+
+<div class="card" style="margin-top:25px;">
+
+    <div class="summary-header">
+        Workflow Summary
+    </div>
+
+    <div class="cards">
+        <a href="/work_plan"
+            class="card"
+            style="text-decoration:none;border-left:5px solid #0f766e;">
+
+                <p>Pending Allocation</p>
+
+                <h2>{{ pending_allocation }}</h2>
+
+            </a>
+
+        <a href="/metering_officer"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #0ea5e9;">
+
+            <p>Pending System Updates</p>
+
+            <h2>{{ pending_system_updates }}</h2>
+
+        </a>
+
+        <a href="/batching_queue"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #f59e0b;">
+
+            <p>Batching</p>
+
+            <h2>{{ pending_batching }}</h2>
+
+        </a>
+
+        <a href="/test_bench"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #8b5cf6;">
+
+            <p>Test Bench</p>
+
+            <h2>{{ pending_test_bench }}</h2>
+
+        </a>
+
+    </div>
+
+    <br>
+
+    <div class="cards">
+
+        <a href="/passed_testing"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #22c55e;">
+
+            <p>Passed Testing</p>
+
+            <h2>{{ passed_testing }}</h2>
+
+        </a>
+
+        <a href="/failed_testing"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #ef4444;">
+
+            <p>Failed Testing</p>
+
+            <h2>{{ failed_testing }}</h2>
+
+        </a>
+
+        <a href="/pending_disposal"
+           class="card"
+           style="text-decoration:none;border-left:5px solid #64748b;">
+
+            <p>Pending Disposal</p>
+
+            <h2>{{ pending_disposal }}</h2>
+
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

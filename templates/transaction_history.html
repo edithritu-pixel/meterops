@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+
+    <h1>Transaction History</h1>
+
+    <p>
+        <b>Transaction Key:</b>
+        {{ transaction_key }}
+    </p>
+
+    <table>
+
+        <tr>
+            <th>Action</th>
+            <th>Performed By</th>
+            <th>Remarks</th>
+            <th>Timestamp</th>
+        </tr>
+
+        {% for log in logs %}
+        <tr>
+
+            <td>
+                {{ log.action }}
+            </td>
+
+            <td>
+                {{ log.performed_by }}
+            </td>
+
+            <td>
+                {{ log.remarks }}
+            </td>
+
+            <td>
+                {{ log.timestamp }}
+            </td>
+
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</div>
+
+<style>
+
+.container {
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: #1f2937;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+tr:hover {
+    background: #eef2ff;
+}
+
+</style>
+
+{% endblock %}

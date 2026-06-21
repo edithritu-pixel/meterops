@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Metering Officer Detail</h1>
+
+<p>
+    <b>Account:</b>
+    {{ record.account_number }}
+</p>
+
+<p>
+    <b>Customer:</b>
+    {{ record.customer_name }}
+</p>
+
+<p>
+    <b>Removed Meter:</b>
+    {{ record.removed_meter }}
+</p>
+
+<p>
+    <b>Workflow Stage:</b>
+    {{ record.workflow_stage }}
+</p>
+<hr>
+
+<form method="POST">
+
+    <label>Remarks</label>
+
+    <textarea
+        name="metering_remarks"
+        rows="4"
+        cols="50"
+    ></textarea>
+
+    <br><br>
+
+    <button
+        type="submit"
+        name="forward_batching"
+        value="yes"
+    >
+        Forward To Test Bench
+    </button>
+<p>
+    <b>Test Result:</b>
+    {{ record.test_bench_result }}
+</p>
+
+<p>
+    <b>Test Bench Remarks:</b>
+    {{ record.test_bench_remarks }}
+</p>
+</form>
+{% endblock %}

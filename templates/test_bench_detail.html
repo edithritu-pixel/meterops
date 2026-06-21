@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Test Bench Detail</h1>
+
+<p>
+    <b>Account:</b>
+    {{ record.account_number }}
+</p>
+
+<p>
+    <b>Customer:</b>
+    {{ record.customer_name }}
+</p>
+
+<p>
+    <b>Removed Meter:</b>
+    {{ record.removed_meter }}
+</p>
+
+<hr>
+
+<form method="POST">
+
+    <label>Result</label>
+
+    <select name="test_bench_result">
+
+        <option value="">
+            Select
+        </option>
+
+        <option value="Pass">
+            Pass
+        </option>
+
+        <option value="Fail">
+            Fail
+        </option>
+
+    </select>
+
+    <br><br>
+
+    <label>Remarks</label>
+
+    <textarea
+        name="test_bench_remarks"
+        rows="4"
+        cols="50"
+    ></textarea>
+
+    <br><br>
+
+    <button type="submit">
+        Save Result
+    </button>
+
+</form>
+
+{% endblock %}

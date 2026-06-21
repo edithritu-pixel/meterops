@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Activity Logs</h1>
+
+<table>
+
+    <tr>
+        <th>Transaction Key</th>
+        <th>Account</th>
+        <th>Action</th>
+        <th>Performed By</th>
+        <th>Remarks</th>
+        <th>Timestamp</th>
+    </tr>
+
+    {% for log in logs %}
+
+    <tr>
+        <td>{{ log.transaction_key }}</td>
+        <td>{{ log.account_number }}</td>
+        <td>{{ log.action }}</td>
+        <td>{{ log.performed_by }}</td>
+        <td>{{ log.remarks }}</td>
+        <td>{{ log.timestamp }}</td>
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+{% endblock %}

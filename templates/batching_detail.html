@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1>Batching Detail</h1>
+
+<p>
+    <b>Account:</b>
+    {{ record.account_number }}
+</p>
+
+<p>
+    <b>Customer:</b>
+    {{ record.customer_name }}
+</p>
+
+<p>
+    <b>Removed Meter:</b>
+    {{ record.removed_meter }}
+</p>
+
+<p>
+    <b>Stage:</b>
+    {{ record.workflow_stage }}
+</p>
+
+<hr>
+
+<form method="POST">
+
+    <button type="submit">
+        Forward To Test Bench
+    </button>
+
+</form>
+
+{% endblock %}

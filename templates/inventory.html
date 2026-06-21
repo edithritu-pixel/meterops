@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1 class="page-title">
+    Meter Inventory
+</h1>
+
+<div class="tabs">
+
+    <a href="/inventory?status=Available"
+       class="tab">
+       Available
+    </a>
+
+    <a href="/inventory?status=Allocated"
+       class="tab">
+       Allocated
+    </a>
+
+    <a href="/inventory?status=Reabsorbed"
+        class="tab">
+        Reabsorbed
+    </a>
+
+
+    <a href="/inventory?status=Pending Test Bench"
+        class="tab">
+        Test Bench
+    </a>
+
+    <a href="/inventory?status=Faulty"
+       class="tab">
+       Faulty
+    </a>
+
+    <a href="/inventory?status=Disposed"
+       class="tab">
+       Disposed
+    </a>
+
+</div>
+
+<div class="card">
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Meter Number</th>
+
+                <th>Region</th>
+
+                <th>Location</th>
+
+                <th>Status</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% for meter in meters %}
+
+            <tr>
+
+                <td>{{ meter.meter_number }}</td>
+
+                <td>{{ meter.region }}</td>
+
+                <td>{{ meter.current_location }}</td>
+
+                <td>{{ meter.status }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

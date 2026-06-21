@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<hr>
+
+<div>
+
+{% if pagination.has_prev %}
+<a href="?page={{ pagination.prev_num }}&search={{ search }}">
+    Previous
+</a>
+{% endif %}
+
+&nbsp;&nbsp;
+
+Page {{ pagination.page }}
+of
+{{ pagination.pages if pagination.pages > 0 else 1 }}
+
+&nbsp;&nbsp;
+
+{% if pagination.has_next %}
+<a href="?page={{ pagination.next_num }}&search={{ search }}">
+    Next
+</a>
+{% endif %}
+
+</div>
+<form method="GET">
+
+    <input
+        type="text"
+        name="search"
+        placeholder="Search account, customer, meter"
+        value="{{ search }}"
+    >
+
+    <button type="submit">
+        Search
+    </button>
+
+</form>
+
+<br>
+{
+
+<h1>Pending Disposal Queue</h1>
+
+<table class="table">
+
+<tr>
+    <th>Select</th>
+    <th>Account</th>
+    <th>Customer</th>
+    <th>Result</th>
+    <th>Action</th>
+</tr>
+
+{% for record in records %}
+
+<tr>
+    <td>{{ record.account_number }}</td>
+    <td>{{ record.customer_name }}</td>
+    <td>{{ record.test_bench_result }}</td>
+
+    <td>
+        <a href="/pending_disposal/{{ record.id }}">
+            Open
+        </a>
+    </td>
+</tr>
+
+{% endfor %}
+<hr>
+
+<div>
+
+{% if pagination.has_prev %}
+<a href="?page={{ pagination.prev_num }}&search={{ search }}">
+    Previous
+</a>
+{% endif %}
+
+&nbsp;&nbsp;
+
+Page {{ pagination.page }}
+of
+{{ pagination.pages }}
+
+&nbsp;&nbsp;
+
+{% if pagination.has_next %}
+<a href="?page={{ pagination.next_num }}&search={{ search }}">
+    Next
+</a>
+{% endif %}
+
+</div>
+</table>
+<hr>
+
+<div>
+
+{% if pagination.has_prev %}
+<a href="?page={{ pagination.prev_num }}&search={{ search }}">
+    Previous
+</a>
+{% endif %}
+
+&nbsp;&nbsp;
+
+Page {{ pagination.page }}
+of
+{{ pagination.pages }}
+
+&nbsp;&nbsp;
+
+{% if pagination.has_next %}
+<a href="?page={{ pagination.next_num }}&search={{ search }}">
+    Next
+</a>
+{% endif %}
+
+</div>
+{% endblock %}

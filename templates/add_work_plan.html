@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Add Work Plan</title>
+
+    <style>
+
+        body{
+            font-family: Arial;
+            padding:20px;
+            background:#f4f6f9;
+        }
+
+        .container{
+            width:600px;
+            margin:auto;
+        }
+
+        form{
+            background:white;
+            padding:25px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1{
+            margin-bottom:20px;
+            color:#1f2937;
+        }
+
+        input, select, textarea{
+            width:100%;
+            padding:12px;
+            margin-bottom:15px;
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            box-sizing:border-box;
+            font-size:14px;
+        }
+
+        input[readonly]{
+            background:#f3f4f6;
+        }
+
+        textarea{
+            min-height:100px;
+            resize:vertical;
+        }
+
+        button{
+            padding:12px 20px;
+            background:#1f2937;
+            color:white;
+            border:none;
+            border-radius:6px;
+            cursor:pointer;
+            font-size:14px;
+        }
+
+        button:hover{
+            background:#111827;
+        }
+
+        .section-title{
+            margin-top:25px;
+            margin-bottom:10px;
+            font-weight:bold;
+            color:#374151;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Add Regional Operations Task</h1>
+
+    <form method="POST">
+
+        <!-- ACCOUNT DETAILS -->
+
+        <div class="section-title">
+            Customer Information
+        </div>
+
+        <input
+            type="text"
+            id="account_number"
+            name="account_number"
+            placeholder="Account Number"
+            required
+        >
+
+        <input
+            type="text"
+            id="customer_name"
+            name="customer_name"
+            placeholder="Customer Name"
+            readonly
+        >
+
+        <input
+            type="text"
+            id="customer_number"
+            name="customer_number"
+            placeholder="Customer Number"
+            readonly
+        >
+
+        <input
+            type="text"
+            id="current_meter"
+            name="current_meter"
+            placeholder="Current Meter"
+            readonly
+        >
+        <input
+            type="text"
+            id="installation_key"
+            name="installation_key"
+            placeholder="Installation Key"
+            readonly>
+
+        <input
+            type="date"
+            id="current_meter_installation_date"
+            name="current_meter_installation_date"
+            readonly>
+
+        <input
+            type="number"
+            id="current_meter_year_of_manufacture"
+            name="current_meter_year_of_manufacture"
+            placeholder="Year of Manufacture"
+            readonly>
+
+        <input
+            type="text"
+            id="zone"
+            name="zone"
+            placeholder="Zone"
+            readonly
+        >
+        <label>Region</label>
+
+        <input
+            type="text"
+            name="region"
+            id="region"
+            readonly
+        >
+
+        <br><br>
+        <!-- TASK DETAILS -->
+
+        <div class="section-title">
+            Task Information
+        </div>
+
+       <input
+    type="text"
+    name="reported_by"
+    placeholder="Reported By"
+    required
+>
+
+<select name="category" required>
+
+    <option value="">
+        Select Category
+    </option>
+
+    <option>Change and repair</option>
+
+    <option>New connections</option>
+
+    <option>Stolen</option>
+
+    <option>Damaged meter</option>
+
+    <option>Vacate</option>
+
+    <option>Meter test</option>
+
+</select>
+       
+        <select name="priority">
+
+            <option>Low</option>
+
+            <option>Medium</option>
+
+            <option>High</option>
+
+            <option>Critical</option>
+
+        </select>
+
+        <select name="status">
+
+    <option>New Request</option>
+
+</select>
+        <textarea
+            name="remarks"
+            placeholder="Remarks"
+        ></textarea>
+
+        <input
+            type="date"
+            name="created_at"
+        >
+
+        <button type="submit">
+            Save Task
+        </button>
+
+    </form>
+
+</div>
+
+<!-- AUTOFILL SCRIPT -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const accountInput = document.getElementById("account_number");
+
+    accountInput.addEventListener("input", function () {
+
+        let accountNumber = this.value.trim();
+
+        if(accountNumber.length < 3){
+            return;
+        }
+
+        fetch("/get_customer/" + accountNumber)
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            console.log(data);
+
+            document.getElementById("customer_name").value =
+                data.customer_name || "";
+
+            document.getElementById("customer_number").value =
+                data.customer_number || "";
+
+            document.getElementById("current_meter").value =
+                data.current_meter || "";
+            document.getElementById("installation_key").value =
+                data.installation_key || "";
+
+            document.getElementById("current_meter_installation_date").value =
+                data.current_meter_installation_date || "";
+
+            document.getElementById("current_meter_year_of_manufacture").value =
+                data.current_meter_year_of_manufacture || "";
+
+            document.getElementById("zone").value =
+                data.zone || "";
+            document.getElementById('region').value =
+                data.region;
+
+        })
+
+        .catch(error => {
+
+            console.log("Autofill error:", error);
+
+        });
+
+    });
+
+});
+
+</script>
+
+</body>
+
+</html>

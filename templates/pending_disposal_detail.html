@@ -1,0 +1,19 @@
+<h1>HQ Disposal Review</h1>
+
+<p>{{ record.account_number }}</p>
+<p>{{ record.customer_name }}</p>
+<p>{{ record.removed_meter }}</p>
+
+<form method="POST">
+
+    <label>HQ Receipt Remarks</label>
+
+    <textarea
+        name="disposal_remarks"
+    ></textarea>
+
+    <button type="submit">
+        Acknowledge Receipt
+    </button>
+
+</form>
