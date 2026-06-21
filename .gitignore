@@ -5,4 +5,11 @@ uploads/
 *.xlsx
 *.csv
 instance/
+.env__pycache__/
+*.pyc
+.DS_Store
+uploads/
+*.xlsx
+*.csv
+instance/
 .env
