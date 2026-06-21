@@ -5,3 +5,4 @@ openpyxl
 Werkzeug
 PyMySQL
 gunicorn
+psycopg2-binary
