@@ -25,7 +25,9 @@ app = Flask(__name__)
 
 app.secret_key = "meter_secret_key"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Mwesh2mwesh@localhost/meter_management'
+import os
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 UPLOAD_FOLDER = 'uploads'
