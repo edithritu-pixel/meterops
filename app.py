@@ -23,12 +23,9 @@ app = Flask(__name__)
 # APP CONFIGURATION
 # =========================================
 
-import os
+app.secret_key = "meter_secret_key"
 
-app.secret_key = os.getenv("SECRET_KEY", "meter_secret_key")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    "DATABASE_URL",
+app.config['SQLALCHEMY_DATABASE_URI'] = (
     "mysql+pymysql://root:Mwesh2mwesh@localhost/meter_management"
 )
 
