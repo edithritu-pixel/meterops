@@ -1291,6 +1291,10 @@ def work_plan_detail(id):
                         inventory_meter.status = (
                             'Available'
                         )
+                        plan.field_status = field_status
+                        plan.field_remarks = request.form.get('field_remarks')
+                        plan.office_return_received = True
+                        plan.office_return_date = datetime.now().strftime('%Y-%m-%d')
                         log = ActivityLog(
                             transaction_key=plan.transaction_key,
                             account_number=plan.account_number,
