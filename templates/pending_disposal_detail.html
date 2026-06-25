@@ -5,7 +5,7 @@
 <p>{{ record.removed_meter }}</p>
 
 <form method="POST">
-
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>HQ Receipt Remarks</label>
 
     <textarea

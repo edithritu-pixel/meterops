@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Field Return Evidence</h2>
+
+<p><b>Account:</b> {{ record.account_number }}</p>
+<p><b>Customer:</b> {{ record.customer_name }}</p>
+<p><b>Removed Meter:</b> {{ record.removed_meter }}</p>
+
+{% if record.returned_meter_photo %}
+<p>
+    <b>Removed Meter Photo:</b><br>
+    <a href="/uploads/{{ record.returned_meter_photo }}" target="_blank">
+        View Photo
+    </a>
+</p>
+{% endif %}
+
+{% if record.office_return_document %}
+<p>
+    <b>Office Return Document:</b><br>
+    <a href="/uploads/{{ record.office_return_document }}" target="_blank">
+        View Document
+    </a>
+</p>
+{% endif %}
+
+<a href="{{ url_for('roq') }}">Back</a>
+
+{% endblock %}

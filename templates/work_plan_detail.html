@@ -199,9 +199,7 @@
     {% endif %}
 
 </select>
-{% endif %}
 
-</select>
 
 <br><br>
 
@@ -242,6 +240,7 @@
 </button>
 
 {% endif %}
+{% endif %}
 
 
 <!-- ===================================== -->
@@ -249,7 +248,7 @@
 <!-- ===================================== -->
 
 {% if plan.field_status in ['Installed', 'Returned']
-      and plan.work_order_status != 'Updated' %}
+      and (not plan.work_order_status or plan.work_order_status == 'Pending') %}
 
 <hr>
 
@@ -302,7 +301,11 @@ You may now update the account.
 
 <br><br>
 
-<button type="submit">
+<button
+    type="submit"
+    name="work_order_submit"
+    value="yes"
+>
     Save Work Order
 </button>
 

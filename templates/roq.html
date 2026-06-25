@@ -226,20 +226,11 @@
                 History
                 </a>
 
-                {% if r.removed_meter_photo %}
-                <a href="{{ url_for('static', filename=r.removed_meter_photo) }}"
-                class="btn photo-btn"
-                target="_blank">
-                Photo
-                </a>
-                {% endif %}
+               
 
-                {% if r.office_return_document %}
-
-
-                <a href="/uploads/{{ r.office_return_document }}"
-                class="btn return-btn"
-                target="_blank">
+                {% if r.removed_meter_photo or r.office_return_document %}
+                <a href="{{ url_for('return_view', id=r.id) }}"
+                class="btn return-btn">
                 Return
                 </a>
                 {% endif %}

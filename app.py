@@ -11,19 +11,30 @@ from flask import (
     flash
 )
 from datetime import datetime
+import logging
+from logging.handlers import RotatingFileHandler
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 from io import BytesIO
 import os
 
 app = Flask(__name__)
-
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 # =========================================
 # APP CONFIGURATION
 # =========================================
 
-app.secret_key = "meter_secret_key"
+app.secret_key = os.getenv("SECRET_KEY")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = (
     "mysql+pymysql://root:Mwesh2mwesh@localhost/meter_management"
@@ -31,18 +42,42 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {
+    'png',
+    'jpg',
+    'jpeg',
+    'pdf',
+    'csv',
+    'xlsx'
+}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+if not os.path.exists('logs'):
+    os.mkdir('logs')
 
+file_handler = RotatingFileHandler(
+    'logs/meterops.log',
+    maxBytes=10240,
+    backupCount=10
+)
+
+file_handler.setLevel(logging.ERROR)
+
+formatter = logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s'
+)
+
+file_handler.setFormatter(formatter)
+
+app.logger.addHandler(file_handler)
 db = SQLAlchemy(app)
 
 # =========================================
 # LOGIN DETAILS
 # =========================================
 
-USERNAME = "admin"
-PASSWORD = "admin123"
+
 ROQ_STATUSES = [
 
     "New Request",
@@ -61,7 +96,41 @@ ROQ_STATUSES = [
     "Vacate Request",
     "Cancelled",
 ]
-
+ALLOWED_TRANSITIONS = {
+    "New Request": ["Pending Allocation", "Cancelled"],
+    "Pending Allocation": ["Allocated", "Cancelled"],
+    "Allocated": ["Awaiting Field Return", "Cancelled"],
+    "Awaiting Field Return": ["Awaiting Work Order Update", "Cancelled"],
+    "Awaiting Work Order Update": ["Pending Batching", "Not Updated"],
+    "Not Updated": ["Awaiting Work Order Update"],
+    "Pending Batching": ["Pending Test Bench"],
+    "Pending Test Bench": ["Passed Testing", "Failed Testing"],
+    "Passed Testing": ["Reabsorbed"],
+    "Failed Testing": ["Pending Disposal"],
+    "Pending Disposal": ["HQ Receipt Acknowledged"],
+    "HQ Receipt Acknowledged": ["Disposed"],
+    "Vacate Request": [],
+    "Cancelled": [],
+    "Reabsorbed": [],
+    "Disposed": []
+}
+def can_transition(current_stage, new_stage):
+    allowed = ALLOWED_TRANSITIONS.get(current_stage, [])
+    return new_stage in allowed
+def allowed_file(filename):
+    return (
+        '.' in filename and
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
+def log_activity(action, transaction_key=None, account_number=None, remarks=None):
+    log = ActivityLog(
+        action=action,
+        transaction_key=transaction_key,
+        account_number=account_number,
+        performed_by=session.get('user'),
+        remarks=remarks
+    )
+    db.session.add(log)
 # =========================================
 # DATABASE MODELS
 # =========================================
@@ -91,7 +160,6 @@ class MeterRecord(db.Model):
     final_reading = db.Column(db.String(100))
     return_date = db.Column(db.Date)
 
-    return_date = db.Column(db.Date)
 
     returned_meter_photo = db.Column(
         db.String(300)
@@ -287,17 +355,6 @@ class WorkPlan(db.Model):
     )
     
 
-    work_order_comments = db.Column(
-        db.Text
-    )
-
-    work_order_updated_by = db.Column(
-        db.String(100)
-    )
-
-    work_order_update_date = db.Column(
-        db.String(50)
-    )
     cancel_reason = db.Column(
         db.String(500)
     )
@@ -338,14 +395,55 @@ class ActivityLog(db.Model):
 # =========================================
 # LOGIN PROTECTION
 # =========================================
-
 def login_required():
 
     if 'user' not in session:
         return False
 
     return True
-from sqlalchemy import or_
+
+
+def role_required(*allowed_roles):
+
+    if 'role' not in session:
+        return False
+
+    return session['role'] in allowed_roles
+
+
+class User(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    username = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False
+    )
+
+    password = db.Column(
+        db.String(300),
+        nullable=False
+    )
+
+    role = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    active = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.now
+    )
+
 
 def queue_search(workflow_stage):
 
@@ -385,6 +483,7 @@ def queue_search(workflow_stage):
 # =========================================
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
 
     if request.method == 'POST':
@@ -392,9 +491,20 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        if username == USERNAME and password == PASSWORD:
+        user = User.query.filter_by(
+            username=username,
+            active=True
+        ).first()
 
+        if user and check_password_hash(user.password, password):
             session['user'] = username
+            session['role'] = user.role
+
+            log_activity(
+            "Login",
+            remarks=f"{username} logged in"
+            )
+            db.session.commit()
 
             return redirect(url_for('dashboard'))
 
@@ -411,8 +521,12 @@ def login():
 
 @app.route('/logout')
 def logout():
-
-    session.pop('user', None)
+    log_activity(
+    "Logout",
+    remarks=f"{session.get('user')} logged out"
+    )
+    db.session.commit()
+    session.clear()
 
     return redirect(url_for('login'))
 
@@ -600,6 +714,9 @@ def add_record():
         filename = ""
 
         if photo and photo.filename != "":
+            if not allowed_file(photo.filename):
+                flash("Invalid file type")
+                return redirect(request.url)
 
             filename = secure_filename(photo.filename)
 
@@ -850,14 +967,19 @@ def update_roq(id, stage):
 
     record = MeterRecord.query.get_or_404(id)
 
-    record.workflow_stage = stage
-
+    if can_transition(record.workflow_stage, stage):
+        record.workflow_stage = stage
+    else:
+        flash("Invalid workflow transition.")
     db.session.commit()
 
     return redirect(request.referrer)
 
 @app.route('/activity_logs')
 def activity_logs():
+    if not role_required("Admin"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
 
     if not login_required():
         return redirect(url_for('login'))
@@ -893,7 +1015,9 @@ def transaction_history(transaction_key):
 
 @app.route('/inventory')
 def inventory():
-
+    if not role_required("Admin", "Supervisor"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
@@ -988,7 +1112,9 @@ def system_updates():
 # =========================================
 @app.route('/work_plan')
 def work_plan():
-
+    if not role_required("Admin", "Supervisor"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
@@ -1015,6 +1141,9 @@ def work_plan():
 
 @app.route('/work_plan/<int:id>', methods=['GET', 'POST'])
 def work_plan_detail(id):
+    if not role_required("Admin", "Supervisor", "Work Order Assistant"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
 
     if not login_required():
         return redirect(url_for('login'))
@@ -1041,6 +1170,14 @@ def work_plan_detail(id):
             selected_meter = request.form.get('allocated_meter')
             technician = request.form.get('allocated_to')
 
+            inventory_meter = MeterInventory.query.filter_by(
+                meter_number=selected_meter
+            ).first()
+
+            if inventory_meter and inventory_meter.status != "Available":
+                flash("Meter is not available for allocation.")
+                return redirect(request.url)
+
             plan.allocated_meter = selected_meter
             plan.allocated_to = technician
             plan.date_allocated = datetime.now().strftime('%Y-%m-%d')
@@ -1063,7 +1200,12 @@ def work_plan_detail(id):
             if record:
                 record.allocated_meter = selected_meter
                 record.allocated_to = technician
-                record.workflow_stage = 'Allocated'
+
+                if can_transition(record.workflow_stage, "Allocated"):
+                    record.workflow_stage = "Allocated"
+                else:
+                    flash("Invalid workflow transition.")
+                    return redirect(request.url)
 
             inventory_meter = MeterInventory.query.filter_by(
                 meter_number=selected_meter
@@ -1099,6 +1241,10 @@ def work_plan_detail(id):
 
             if removed_photo and removed_photo.filename:
 
+                if not allowed_file(removed_photo.filename):
+                    flash("Invalid removed meter photo type")
+                    return redirect(request.url)
+
                 filename = secure_filename(
                     removed_photo.filename
                 )
@@ -1112,12 +1258,14 @@ def work_plan_detail(id):
 
                 plan.removed_meter_photo = filename
 
-
-            return_doc = request.files.get(
-                'office_return_document'
-            )
-
+            return_doc = request.files.get('office_return_document')
             if return_doc and return_doc.filename:
+
+                if not allowed_file(return_doc.filename):
+                    flash("Invalid office return document type")
+                    return redirect(request.url)
+
+                
 
                 doc_filename = secure_filename(
                     return_doc.filename
@@ -1144,7 +1292,7 @@ def work_plan_detail(id):
                 transaction_key=plan.transaction_key
             ).first()
 
-            if record:
+            if record is not None:
 
                 record.field_status = field_status
 
@@ -1169,69 +1317,22 @@ def work_plan_detail(id):
                     if inventory_meter:
                         inventory_meter.status = 'Installed'
 
-                    record.workflow_stage = 'Awaiting Work Order Update'
-
-                    if plan.category == "Replacement":
-                        record.removed_meter = plan.current_meter
-
-                    elif plan.category == "Stolen Meter":
-                        record.removed_meter = "STOLEN"
-
-                    elif plan.category == "New Connection":
-                        record.removed_meter = None
-
-
+                    if can_transition(record.workflow_stage, "Awaiting Work Order Update"):
+                        record.workflow_stage = "Awaiting Work Order Update"
+                    else:
+                        flash("Invalid workflow transition.")
+                        return redirect(request.url)
+                
                 elif field_status == 'Returned':
 
-                    record.workflow_stage = 'Awaiting Work Order Update'
+                    if can_transition(record.workflow_stage, "Awaiting Work Order Update"):
+                        record.workflow_stage = "Awaiting Work Order Update"
+                    else:
+                        flash("Invalid workflow transition.")
+                        return redirect(request.url)
 
-                    if plan.category == "Vacate":
+                    if plan.category in ['Vacate', 'Replacement']:
 
-                        record.removed_meter = plan.current_meter
-
-                        returned_meter = MeterInventory.query.filter_by(
-                            meter_number=plan.current_meter
-                        ).first()
-
-                        if returned_meter:
-                            returned_meter.status = 'Pending Test Bench'
-                            returned_meter.region = record.region
-                            returned_meter.current_location = 'Store'
-
-                        else:
-                            returned_meter = MeterInventory(
-                                meter_number=plan.current_meter,
-                                region=record.region,
-                                current_location='Store',
-                                status='Pending Test Bench'
-                            )
-                            plan.field_status = field_status
-                            plan.field_remarks = request.form.get('field_remarks')
-                            plan.office_return_received = True
-                            plan.office_return_date = datetime.now().strftime('%Y-%m-%d')
-
-                            db.session.commit()
-
-                            return redirect(
-                                url_for(
-                                    'work_plan_detail',
-                                    id=plan.id
-                                )
-                            )
-
-
-                            db.session.add(returned_meter)
-                    inventory_meter = MeterInventory.query.filter_by(
-                        meter_number=plan.allocated_meter
-                    ).first()
-
-                    if inventory_meter:
-                        inventory_meter.status = 'Installed'
-
-                    record.workflow_stage = 'Awaiting Work Order Update'
-
-                    # CATEGORY RULES
-                    if plan.category == "Replacement":
                         record.removed_meter = plan.current_meter
 
                         returned_meter = MeterInventory.query.filter_by(
@@ -1258,126 +1359,21 @@ def work_plan_detail(id):
                     elif plan.category == "New Connection":
                         record.removed_meter = None
 
-                    elif plan.category == "Vacate":
-                        record.removed_meter = plan.current_meter
+                    plan.field_status = field_status
+                    plan.field_remarks = request.form.get('field_remarks')
+                    plan.office_return_received = True
+                    plan.office_return_date = datetime.now().strftime('%Y-%m-%d')
 
-                        returned_meter = MeterInventory.query.filter_by(
-                            meter_number=plan.current_meter
-                        ).first()
-
-                        if returned_meter:
-                            returned_meter.status = 'Pending Test Bench'
-                            returned_meter.region = record.region
-                            returned_meter.current_location = 'Store'
-
-                        else:
-                            returned_meter = MeterInventory(
-                                meter_number=plan.current_meter,
-                                region=record.region,
-                                current_location='Store',
-                                status='Pending Test Bench'
-                            )
-                            db.session.add(returned_meter)
-                            print("SETTING REMARKS")
-                        print(record.remarks)
-                        inventory_meter = (
-                            MeterInventory.query.filter_by(
-                                meter_number=plan.allocated_meter
-                            ).first()
-                        )
-
-                    if inventory_meter:
-
-                        inventory_meter.status = (
-                            'Available'
-                        )
-                        plan.field_status = field_status
-                        plan.field_remarks = request.form.get('field_remarks')
-                        plan.office_return_received = True
-                        plan.office_return_date = datetime.now().strftime('%Y-%m-%d')
-                        log = ActivityLog(
-                            transaction_key=plan.transaction_key,
-                            account_number=plan.account_number,
-                            action="Field Status Updated",
-                            performed_by=session.get('user'),
-                            remarks=f"Status changed to {plan.field_status}"
-                        )
-
-                        db.session.add(log)
-                        db.session.commit()
-
-                return redirect(
-                    url_for(
-                        'work_plan_detail',
-                        id=plan.id
-                    )
-                )    
-               # Work Order
-        elif request.form.get('work_order_submit'):
-
-            work_order_status = request.form.get(
-                'work_order_status'
-            )
-            
-
-            plan.work_order_status = work_order_status
-            plan.work_order_status = request.form.get(
-                'work_order_status'
-            )
-            plan.work_order_comments = request.form.get(
-                'work_order_comments'
-            )
-            log = ActivityLog(
-                transaction_key=plan.transaction_key,
-                account_number=plan.account_number,
-                action="Work Order Updated",
-                performed_by=session.get('user'),
-                remarks=f"Work order marked as {work_order_status}"
-            )
-
-            db.session.add(log)
-            plan.work_order_update_date = datetime.now().strftime(
-                '%Y-%m-%d'
-            )
-
-            record = MeterRecord.query.filter_by(
-                transaction_key=plan.transaction_key
-            ).first()
-
-            if record:
-
-                
-                if work_order_status == 'Updated':
-
-                    # CATEGORY ROUTING
-                    if plan.category in ['Replacement', 'Vacate']:
-                        record.workflow_stage = 'Pending Batching'
-                        plan.status = 'Closed'
-
-                    elif plan.category in ['Stolen Meter', 'New Connection']:
-                        record.workflow_stage = 'Closed'
-                        record.status = 'Completed'
-                        plan.status = 'Closed'
-
-                    record.pending_reason = None
-                    
-                else:
-
-                    record.workflow_stage = (
-                        'Not Updated'
-                    )
-                    record.pending_reason = (
-                        plan.work_order_comments
+                    log = ActivityLog(
+                        transaction_key=plan.transaction_key,
+                        account_number=plan.account_number,
+                        action="Field Status Updated",
+                        performed_by=session.get('user'),
+                        remarks=f"Status changed to {plan.field_status}"
                     )
 
-                    
-                    record.pending_reason = (
-                        request.form.get(
-                            'work_order_comments'
-                        )
-                    )
-
-                    
+                    db.session.add(log)
+                    db.session.commit()
 
             db.session.commit()
 
@@ -1388,6 +1384,77 @@ def work_plan_detail(id):
                 )
             )
 
+        # Work Order
+        elif request.form.get('work_order_submit'):
+            if not role_required("Admin", "Work Order Assistant"):
+                flash("Access denied")
+                return redirect(url_for('dashboard'))
+            print("WORK ORDER HIT")
+            print(request.form)
+
+            work_order_status = request.form.get(
+                'work_order_status'
+            )
+
+            plan.work_order_status = work_order_status
+            plan.work_order_comments = request.form.get(
+                'work_order_comments'
+            )
+            plan.work_order_updated_by = session.get('user')
+            plan.work_order_update_date = datetime.now().strftime(
+                '%Y-%m-%d'
+            )
+
+            log = ActivityLog(
+                transaction_key=plan.transaction_key,
+                account_number=plan.account_number,
+                action="Work Order Updated",
+                performed_by=session.get('user'),
+                remarks=f"Work order marked as {work_order_status}"
+            )
+
+            db.session.add(log)
+
+            record = MeterRecord.query.filter_by(
+                transaction_key=plan.transaction_key
+            ).first()
+
+            if record:
+
+                if work_order_status == 'Updated':
+
+                    if plan.category in ['Replacement', 'Vacate']:
+                        if can_transition(record.workflow_stage, "Pending Batching"):
+                            record.workflow_stage = "Pending Batching"
+                        else:
+                            flash("Invalid workflow transition.")
+                            return redirect(request.url)
+                        plan.status = 'Closed'
+
+                    elif plan.category in ['Stolen Meter', 'New Connection']:
+                        record.workflow_stage = 'Closed'
+                        record.status = 'Completed'
+                        plan.status = 'Closed'
+
+                    record.pending_reason = None
+
+                elif work_order_status == 'Not Updated':
+
+                    if can_transition(record.workflow_stage, "Not Updated"):
+                        record.workflow_stage = "Not Updated"
+                    else:
+                        flash("Invalid workflow transition.")
+                        return redirect(request.url)
+                    record.pending_reason = plan.work_order_comments
+
+            db.session.commit()
+
+            return redirect(
+                url_for(
+                    'work_plan_detail',
+                    id=plan.id
+                )
+    )
     return render_template(
         'work_plan_detail.html',
         plan=plan,
@@ -1398,13 +1465,15 @@ def work_plan_detail(id):
 # =========================================
 
 
-    return render_template('add_work_plan.html')
+   
 # =========================================
-# UPLOAD METERS
+# ADD WORK PLAN
 # =========================================
 @app.route('/add_work_plan', methods=['GET', 'POST'])
 def add_work_plan():
-
+    if not role_required("Admin", "Supervisor"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
@@ -1463,25 +1532,53 @@ def add_work_plan():
 # =========================================
 # UPLOAD CUSTOMERS
 # =========================================
-
 @app.route('/upload_customers', methods=['GET', 'POST'])
 def upload_customers():
 
+    if not role_required("Admin"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
 
         file = request.files['file']
+        filename = secure_filename(file.filename)
+
+        if not file.filename.lower().endswith('.csv'):
+            flash("Only CSV files allowed")
+            return redirect(request.url)
 
         filepath = os.path.join(
             app.config['UPLOAD_FOLDER'],
-            file.filename
+            filename
         )
 
         file.save(filepath)
 
+        required_columns = [
+            'account_number',
+            'customer_name',
+            'current_meter',
+            'customer_number',
+            'zone',
+            'region',
+            'installation_key',
+            'current_meter_installation_date',
+            'current_meter_year_of_manufacture'
+        ]
+
         df = pd.read_csv(filepath)
+
+        missing = [
+            col for col in required_columns
+            if col not in df.columns
+        ]
+
+        if missing:
+            flash(f"Missing columns: {', '.join(missing)}")
+            return redirect(request.url)
 
         for _, row in df.iterrows():
 
@@ -1496,36 +1593,29 @@ def upload_customers():
                 account_number=account_number
             ).first()
 
-            if not existing:
+            if existing:
+                existing.customer_name = str(row['customer_name'])
+                existing.current_meter = str(row['current_meter'])
+                existing.customer_number = str(row['customer_number'])
+                existing.zone = str(row['zone'])
+                existing.region = str(row['region'])
+                existing.installation_key = row['installation_key']
+                existing.current_meter_installation_date = row['current_meter_installation_date']
+                existing.current_meter_year_of_manufacture = row['current_meter_year_of_manufacture']
 
+            else:
                 customer = CustomerAccount(
-    account_number=account_number,
+                    account_number=account_number,
+                    customer_name=str(row['customer_name']),
+                    current_meter=str(row['current_meter']),
+                    customer_number=str(row['customer_number']),
+                    zone=str(row['zone']),
+                    region=str(row['region']),
+                    installation_key=row['installation_key'],
+                    current_meter_installation_date=row['current_meter_installation_date'],
+                    current_meter_year_of_manufacture=row['current_meter_year_of_manufacture'],
+                )
 
-    customer_name=str(
-        row['customer_name']
-    ),
-
-    current_meter=str(
-        row['current_meter']
-    ),
-
-    customer_number=str(
-        row['customer_number']
-    ),
-
-    zone=str(
-        row['zone']
-    ),
-
-    region=str(
-        row['region']
-    ),
-    installation_key=row['installation_key'],
-    current_meter_installation_date=row['current_meter_installation_date'],
-    current_meter_year_of_manufacture=row['current_meter_year_of_manufacture'],
-
-)
-                
                 db.session.add(customer)
 
         db.session.commit()
@@ -1535,7 +1625,6 @@ def upload_customers():
     return render_template(
         'upload_customers.html'
     )
-
 
 # =========================================
 # AUTO POPULATE CUSTOMER
@@ -1680,6 +1769,44 @@ def export_excel():
 with app.app_context():
     db.create_all()
 
+    if not User.query.first():
+
+        default_users = [
+            User(
+                username="admin",
+                password=generate_password_hash("admin123"),
+                role="Admin"
+            ),
+            User(
+                username="supervisor",
+                password=generate_password_hash("admin123"),
+                role="Supervisor"
+            ),
+            User(
+                username="assistant",
+                password=generate_password_hash("admin123"),
+                role="Work Order Assistant"
+            ),
+            User(
+                username="metering",
+                password=generate_password_hash("admin123"),
+                role="Metering Officer"
+            ),
+            User(
+                username="testbench",
+                password=generate_password_hash("admin123"),
+                role="Test Bench Officer"
+            ),
+            User(
+                username="disposal",
+                password=generate_password_hash("admin123"),
+                role="Disposal Officer"
+            )
+        ]
+
+        db.session.add_all(default_users)
+        db.session.commit()
+
 
 @app.route('/allocate/<int:id>', methods=['GET', 'POST'])
 def allocate_meter(id):
@@ -1696,7 +1823,11 @@ def allocate_meter(id):
             'allocated_to'
         )
 
-        record.workflow_stage = "Allocated"
+        if can_transition(record.workflow_stage, "Allocated"):
+            record.workflow_stage = "Allocated"
+        else:
+            flash("Invalid workflow transition.")
+            return redirect(request.url)
 
         db.session.commit()
 
@@ -2007,7 +2138,9 @@ def test_bench():
     methods=['GET', 'POST']
 )
 def test_bench_detail(id):
-
+    if not role_required("Admin", "Test Bench Officer"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
@@ -2025,7 +2158,11 @@ def test_bench_detail(id):
 
         if record.test_bench_result == 'Pass':
 
-            record.workflow_stage = 'Passed Testing'
+            if can_transition(record.workflow_stage, "Passed Testing"):
+                record.workflow_stage = "Passed Testing"
+            else:
+                flash("Invalid workflow transition.")
+                return redirect(request.url)
 
             inventory_meter = MeterInventory.query.filter_by(
                 meter_number=record.removed_meter
@@ -2036,7 +2173,11 @@ def test_bench_detail(id):
 
         else:
 
-            record.workflow_stage = 'Failed Testing'
+            if can_transition(record.workflow_stage, "Failed Testing"):
+                record.workflow_stage = "Failed Testing"
+            else:
+                flash("Invalid workflow transition.")
+                return redirect(request.url)
 
             inventory_meter = MeterInventory.query.filter_by(
                 meter_number=record.removed_meter
@@ -2053,22 +2194,22 @@ def test_bench_detail(id):
             remarks=f"Result: {record.test_bench_result}"
         )
 
-        db.session.add(log)
+    db.session.add(log)
 
-        db.session.commit()
+    db.session.commit()
 
-        flash(
-            'Test bench results saved'
+    flash(
+        'Test bench results saved'
+    )
+
+    page = request.args.get('page', 1)
+
+    return redirect(
+        url_for(
+            'test_bench',
+            page=page
         )
-
-        page = request.args.get('page', 1)
-
-        return redirect(
-            url_for(
-                'test_bench',
-                page=page
-            )
-        )
+    )
 
     return render_template(
         'test_bench_detail.html',
@@ -2165,7 +2306,9 @@ def pending_disposal():
     methods=['GET', 'POST']
 )
 def pending_disposal_detail(id):
-
+    if not role_required("Admin", "Disposal Officer"):
+        flash("Access denied")
+        return redirect(url_for('dashboard'))
     if not login_required():
         return redirect(url_for('login'))
 
@@ -2177,15 +2320,20 @@ def pending_disposal_detail(id):
             'disposal_remarks'
         )
 
-        record.workflow_stage = (
-    'Disposed'
-)
+        if can_transition(record.workflow_stage, "Disposed"):
+            record.workflow_stage = "Disposed"
+        else:
+            flash("Invalid workflow transition.")
+            return redirect(request.url)
 
         inventory_meter = MeterInventory.query.filter_by(
             meter_number=record.removed_meter
         ).first()
 
         if inventory_meter:
+            if inventory_meter.status not in ["Failed Testing", "Pending Disposal"]:
+                flash("Meter is not eligible for disposal.")
+                return redirect(request.url)
             inventory_meter.status = 'Disposed'
         log = ActivityLog(
             transaction_key=record.transaction_key,
@@ -2199,7 +2347,7 @@ def pending_disposal_detail(id):
         db.session.commit()
 
         flash(
-             'Meter received and disposed successfully'
+            'Meter received and disposed successfully'
 )
 
         return redirect(
@@ -2922,7 +3070,18 @@ def apply_date_filter(query):
         query = query.filter(
             MeterRecord.date_created <= end_date
         )
+@app.route('/return/<int:id>')
+def return_view(id):
 
+    if not login_required():
+        return redirect(url_for('login'))
+
+    record = MeterRecord.query.get_or_404(id)
+
+    return render_template(
+        'return_view.html',
+        record=record
+    )
     return query
 if __name__ == '__main__':
     app.run(
